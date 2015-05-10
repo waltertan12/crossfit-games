@@ -1,7 +1,8 @@
-import requests, bs4, re, sqlite3
+import requests, bs4, re, sqlite3 as lite, sys
 
 # Parse individual stats
 def parseRank():
+
 	# Ranking URL
 	url1 = "http://games.crossfit.com/scores/leaderboard.php?stage=0&sort=0&page="
 	url2 = "&division=1&region=0&numberperpage=100&competition=0&frontpage=0&expanded=0&year=15&full=0&showtoggles=1&hidedropdowns=1&showathleteac=0&=&is_mobile=&scaled=0&fittest=1&fitSelect=0"
@@ -15,7 +16,7 @@ def parseRank():
 	# Index
 	index = 0
 
-	while pageNumber <= 1000:
+	while pageNumber <= 200:
 		# Full URL
 		url = url1 + str(pageNumber) + url2
 		print(url)
@@ -33,6 +34,7 @@ def parseRank():
 
 			# Parse athlete url
 			athleteURL 	= reg2.search(str(info[index+1])).group(1)
+			athleteNumber = int(re.compile('http://games.crossfit.com/athlete/(.*)').search(athleteURL).group(1))
 
 			# Event 1
 			event1rank 	= int(reg1.search(str(info[index+2])).group(1))
@@ -71,12 +73,28 @@ def parseRank():
 
 			# Iterate through athletes
 			index += 8
+			# Establish connection to sqlite db
+			conn = lite.connect('crossfit-open-2015.db')
+			cur = conn.cursor()
+
+			# Log to db
+			try:
+				cur.execute("UPDATE athlete_info SET overall_rank=?, event_one_rank=?, event_one_score=? ,event_two_rank=?, event_two_score=?, event_three_rank=?, event_three_score=?, event_four_rank=?, event_four_score=?, event_five_rank=?, event_five_score=?, event_six_rank=?, event_six_score=? WHERE athlete_number=?", [ overallRank, event1rank, event1score, event2rank, event2score, event3rank, event3score, event4rank, event4score, event5rank, event5score, event6rank, event6score, athleteNumber])
+				conn.commit()
+			except lite.Error as e:
+				if conn:
+					conn.rollback()
+				print("Error %s:" % e.args[0])
+				sys.exit(1)
+			finally:
+				if conn:
+					conn.close()
 
 		# Iterate
 		pageNumber += 1
 		index = 0
 
-# 
+# Pull individual statistics
 def parseAthleteStats(athleteURL):
 	# Download individual page
 	res = requests.get(athleteURL)
@@ -85,83 +103,102 @@ def parseAthleteStats(athleteURL):
 	dd = soup.select('dd')
 	td = soup.select('td')
 	lastDD = len(dd)
+	if (str(soup.select("#page-title")).find('Not found') < 0):
+		# Establish connection to sqlite db
+		conn = lite.connect('crossfit-open-2015.db')
+		cur = conn.cursor()
 
-	reg1 = re.compile('http://games.crossfit.com/athlete/(.*)')
+		reg1 = re.compile('http://games.crossfit.com/athlete/(.*)')
 
-	# Regular expression to parse text from <dd></dd>
-	regDD = re.compile(r'<dd>(.*)</dd>')
+		# Regular expression to parse text from <dd></dd>
+		regDD = re.compile(r'<dd>(.*)</dd>')
 
-	# Regular expression to parse text from <td></td>
-	regTD = re.compile(r'<td>(.*)</td>')
+		# Regular expression to parse text from <td></td>
+		regTD = re.compile(r'<td>(.*)</td>')
 
-	# Fill Gender
-	if str(dd).find('Female') >= 0:
-		gender = 'Female'
+		# Fill Gender
+		if str(dd).find('Female') >= 0:
+			gender = 'Female'
+		else:
+			gender = 'Male'
+
+		# Fill age
+		age 	= number(str(regDD.search(str(dd[lastDD-3])).group(1)))
+
+		# Fill height
+		height 	= inches(str(regDD.search(str(dd[lastDD-2])).group(1)))
+
+		# Fill weight
+		weight 	= lbkg(str(regDD.search(str(dd[lastDD-1])).group(1)))
+
+		# Fran
+		fran 	= seconds(str(regTD.search(str(td[ 1])).group(1)))
+
+		# Helen
+		helen	= seconds(str(regTD.search(str(td[ 3])).group(1)))
+
+		# Grace
+		grace	= seconds(str(regTD.search(str(td[ 5])).group(1)))
+
+		# Filthy 50
+		f50		= seconds(str(regTD.search(str(td[ 7])).group(1)))
+
+		# Fight Gone Bad
+		fgb		= number(str(regTD.search(str(td[ 9])).group(1)))
+
+		# 400m Sprint
+		fourH	= seconds(str(regTD.search(str(td[11])).group(1)))
+
+		# 5k Run
+		fiveK	= seconds(str(regTD.search(str(td[13])).group(1)))
+
+		# Clean and Jerk
+		cnj		= lbkg(str(regTD.search(str(td[15])).group(1)))
+
+		# Snatch
+		sn		= lbkg(str(regTD.search(str(td[17])).group(1)))
+
+		# Deadlift
+		dl 		= lbkg(str(regTD.search(str(td[19])).group(1)))
+
+		# Back Squat
+		bs 		= lbkg(str(regTD.search(str(td[21])).group(1)))
+
+		# Max Pullups
+		pu 		= number(str(regTD.search(str(td[23])).group(1)))
+
+		print("//////////////////////////////////////////////")
+		print("Athlete Number: " + reg1.search(athleteURL).group(1))
+		print("Gender: " + gender + " | Age: " + str(age) + " | Height: " + str(height) + " in | Weight: " + str(weight) + " lbs")
+
+		print("Fran: " + str(fran))
+		print("Helen: " + str(helen))
+		print("Grace: " + str(grace))
+		print("Filthy 50: " + str(f50))
+		print("Fight Gone Bad: " + str(fgb))
+		print("400m Sprint: " + str(fourH))
+		print("5k: " + str(fiveK))
+
+		print("Clean & Jerk: " + str(cnj))
+		print("Snatch: " + str(sn))
+		print("Deadlift: " + str(dl))
+		print("Back Squat: " + str(bs))
+		print("Max Pullups: " + str(pu))
+
+		# Log to db
+		try:
+			cur.execute("INSERT INTO athlete_info (athlete_number, gender, age, height, weight, fran, helen, grace, filthy_50, fight_gone_bad, four_hundred_m, five_k, clean_and_jerk, snatch, deadlift, back_squat, max_pullups) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",[int(reg1.search(athleteURL).group(1)), gender, age, height, weight, fran, helen, grace, f50, fgb, fourH, fiveK, cnj, sn, dl, bs, pu])
+			conn.commit()
+		except lite.Error as e:
+			if conn:
+				conn.rollback()
+			print("Error %s:" % e.args[0])
+			sys.exit(1)
+		finally:
+			if conn:
+				conn.close()
 	else:
-		gender = 'Male'
-
-	# Fill age
-	age 	= number(str(regDD.search(str(dd[lastDD-3])).group(1)))
-
-	# Fill height
-	height 	= inches(str(regDD.search(str(dd[lastDD-2])).group(1)))
-
-	# Fill weight
-	weight 	= lbkg(str(regDD.search(str(dd[lastDD-1])).group(1)))
-
-	# Fran
-	fran 	= seconds(str(regTD.search(str(td[ 1])).group(1)))
-
-	# Helen
-	helen	= seconds(str(regTD.search(str(td[ 3])).group(1)))
-
-	# Grace
-	grace	= seconds(str(regTD.search(str(td[ 5])).group(1)))
-
-	# Filthy 50
-	f50		= seconds(str(regTD.search(str(td[ 7])).group(1)))
-
-	# Fight Gone Bad
-	fgb		= number(str(regTD.search(str(td[ 9])).group(1)))
-
-	# 400m Sprint
-	fourH	= seconds(str(regTD.search(str(td[11])).group(1)))
-
-	# 5k Run
-	fiveK	= seconds(str(regTD.search(str(td[13])).group(1)))
-
-	# Clean and Jerk
-	cnj		= lbkg(str(regTD.search(str(td[15])).group(1)))
-
-	# Snatch
-	sn		= lbkg(str(regTD.search(str(td[17])).group(1)))
-
-	# Deadlift
-	dl 		= lbkg(str(regTD.search(str(td[19])).group(1)))
-
-	# Back Squat
-	bs 		= lbkg(str(regTD.search(str(td[21])).group(1)))
-
-	# Max Pullups
-	pu 		= number(str(regTD.search(str(td[23])).group(1)))
-
-	print("//////////////////////////////////////////////")
-	print("Athlete Number: " + reg1.search(athleteURL).group(1))
-	print("Gender: " + gender + " | Age: " + str(age) + " | Height: " + str(height) + " in | Weight: " + str(weight) + " lbs")
-
-	print("Fran: " + str(fran))
-	print("Helen: " + str(helen))
-	print("Grace: " + str(grace))
-	print("Filthy 50: " + str(f50))
-	print("Fight Gone Bad: " + str(fgb))
-	print("400m Sprint: " + str(fourH))
-	print("5k: " + str(fiveK))
-
-	print("Clean & Jerk: " + str(cnj))
-	print("Snatch: " + str(sn))
-	print("Deadlift: " + str(dl))
-	print("Back Squat: " + str(bs))
-	print("Max Pullups: " + str(pu))
+		print("Not found")
 
 # Subfunction to convert clean weight data
 def lbkg(string):
