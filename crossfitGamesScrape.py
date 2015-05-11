@@ -200,7 +200,7 @@ def parseAthleteStats(athleteURL):
 	else:
 		print("Not found")
 
-# Subfunction to convert clean weight data
+# Subfunction to clean weight data
 def lbkg(string):
 	if string.find("lb") >= 0:
 		# Weight is already in pounds, insert to db

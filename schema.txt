@@ -30,4 +30,4 @@ CREATE TABLE athlete_info (
 	event_five_score NUMERIC,
 	event_six_rank NUMERIC,
 	event_six_score NUMERIC
-)
+);
