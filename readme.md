@@ -1,5 +1,2 @@
-CrossFit Open Data Scraper
-=============================
-This is python script to scrape 2015 CrossFit Open data. It pulls overall rank, individual rank, and PRs for each athlete.
-
-Units are in inches, seconds, and pounds.
+# CrossFit Open Data Scraper
+This is simple Flask app that scrapes (and soon interprets and displays) CrossFit Open data.
