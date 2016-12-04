@@ -26,7 +26,7 @@ class Parser():
             exercise = contents[0].getText()
             value = contents[1].getText()
 
-            athlete.set_personal(exercise, value)
+            athlete.set_stat(exercise, value)
 
         counter = 0
         for content in dl[0].contents:
@@ -37,14 +37,14 @@ class Parser():
             else:
                 label = content.getText()[:-1]
 
-        return Athlete(athlete_id)
+        return athlete
 
-    def parse_open_data(self, response):
+    def parse_open(self, response):
         soup = bs4.BeautifulSoup(response.text)
-        info = soup.select('tr > td')
+        tds = soup.select('tr > td')
         data = []
 
-        for td in info:
+        for td in tds:
             str_td = str(td)
             athlete_match = re.search(self.ATHLETE_ID_REGEX, str_td)
             rank_and_score = re.search(self.RANK_AND_SCORE_REGEX, str_td)
