@@ -11,7 +11,6 @@ class Athlete:
     STRING = "STRING"
     UNKNOWN = "UNKNOWN"
 
-
     def __init__(self, athlete_id):
         self.athlete_id = athlete_id
         self.events = {}
